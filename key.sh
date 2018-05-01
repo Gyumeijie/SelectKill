@@ -78,22 +78,23 @@ function select_option {
            indexes[$i]=$((${tmp[$i]} + 1))
         done
 
-        selected=4
+        selected=$lastindex
     }
 
      function update_indexes_up(){
         local tmp=( "${indexes[@]}" )
 
+        if [ $paranum -le $LISTNUM ]; then return ;fi
+
         if [ ${indexes[0]} == 0 ]; then 
-                  
            for (( i=0; i<$rendernum; i++ )); do
-                indexes[$i]=$(($paranum - 5 + $i ))
+                indexes[$i]=$(($paranum - $rendernum + $i ))
            done
            return;
         fi
 
         for (( i=0; i<$rendernum; i++ )); do
-           indexes[$i]=$((${tmp[$i]} -1 ))
+           indexes[$i]=$((${tmp[$i]} - 1 ))
         done
 
         selected=0
@@ -146,8 +147,8 @@ echo "Select one option using up/down keys and enter to confirm:"
 echo
 
 
-indexes=( `generate_indexes 4`)
-options=("one" "two" "three" "four"  "five" "six" "seven" "eight" "nine" "ten" "eleven" "twelve")
+indexes=( `generate_indexes 1`)
+options=("00" "01" )
 
 select_option "${options[@]}"
 choice=$?
