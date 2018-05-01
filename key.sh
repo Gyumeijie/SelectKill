@@ -15,6 +15,13 @@
 #                 "opt1" "opt2" ...
 #   Return value: selected index (0 for opt1, 1 for opt2 ...)
 
+LISTNUM=5
+
+function generate_indexes(){
+   local indexes=`eval echo {0..$1}`   
+   echo "${indexes[@]}"
+}
+
 function select_option {
    
     local opts=($@) # convert to array
@@ -37,18 +44,21 @@ function select_option {
 
     # initially print empty new lines (scroll down if at bottom of screen)
     #for opt in $opts; do printf "\n"; done
-    for num in {1..5}; do printf "\n"; done
+    for num in `seq $LISTNUM`; do printf "\n"; done
 
     # determine current screen position for overwriting the options
     local lastrow=`get_cursor_row`
     # local startrow=$(($lastrow - $#))
-    local startrow=$(($lastrow - 5))
+    local startrow=$(($lastrow - $LISTNUM))
 
     local selected=0
+    local rendernum=$LISTNUM
+    if [ $paranum -lt $LISTNUM ]; then rendernum=$paranum; fi
 
+  
     function clear_region(){
-      for i in {0..4}; do
-          cursor_to $(($startrow + $i))
+      for (( i=0; i<$rendernum; i++ )); do
+          cursor_to $(($startrow + $i ))
            # clear the line from the current cursor to the end of line
           printf "$ESC[0K";
       done
@@ -57,13 +67,14 @@ function select_option {
 
     function update_indexes_down(){
         local tmp=( "${indexes[@]}" )
+        local lastindex=$(($rendernum - 1))
 
-        if [ ${indexes[4]} -eq $(($paranum-1)) ]; then
-            indexes=({0..4})
+        if [ ${indexes[$lastindex]} -eq $(($paranum-1)) ]; then
+            indexes=(`generate_indexes $rendernum`)
             return;
         fi
 
-        for i in {0..4}; do
+        for (( i=0; i<$rendernum; i++ )); do
            indexes[$i]=$((${tmp[$i]} + 1))
         done
 
@@ -75,13 +86,13 @@ function select_option {
 
         if [ ${indexes[0]} == 0 ]; then 
                   
-           for i in {0..4}; do
+           for (( i=0; i<$rendernum; i++ )); do
                 indexes[$i]=$(($paranum - 5 + $i ))
            done
            return;
         fi
 
-        for i in {0..4}; do
+        for (( i=0; i<$rendernum; i++ )); do
            indexes[$i]=$((${tmp[$i]} -1 ))
         done
 
@@ -98,7 +109,7 @@ function select_option {
         # for opt in $opts; do
          local idx=0;
          clear_region
-         for i in {0..4}; do
+         for (( i=0; i<$rendernum; i++ )); do
             idx=${indexes[$i]}
             cursor_to $(($startrow + $i))
             if [ $i -eq $selected ]; then
@@ -115,10 +126,10 @@ function select_option {
                    break;;
             up)    ((selected--));
                    # if [ $selected -lt 0 ]; then selected=$(($# - 1)); fi;;
-                   if [ $selected -lt 0 ]; then selected=$((5 - 1)); update_indexes_up; fi;;
+                   if [ $selected -lt 0 ]; then selected=$(($rendernum - 1)); update_indexes_up; fi;;
             down)  ((selected++));
                    # if [ $selected -ge $# ]; then selected=0; fi;;
-                   if [ $selected -ge 5 ]; then selected=0; update_indexes_down; fi;;
+                   if [ $selected -ge $rendernum ]; then selected=0; update_indexes_down; fi;;
         esac
     done
 
@@ -134,7 +145,8 @@ function select_option {
 echo "Select one option using up/down keys and enter to confirm:"
 echo
 
-indexes=({0..4})
+
+indexes=( `generate_indexes 4`)
 options=("one" "two" "three" "four"  "five" "six" "seven" "eight" "nine" "ten" "eleven" "twelve")
 
 select_option "${options[@]}"
