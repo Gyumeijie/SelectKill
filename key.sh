@@ -1,12 +1,4 @@
 #!/bin/bash
-# version 1
-
-#while IFS="" read -r -e -d $'\n' -p 'input> ' line; do 
-#   echo "$line"
-#   history -s "$line"
-#done
-
-#!/usr/bin/env bash
 
 # Renders a text based list of options that can be selected by the
 # user using up, down and enter keys and returns the chosen option.
@@ -40,6 +32,7 @@ function select_option {
     key_input()        { read -s -n3 key 2>/dev/null >&2
                          if [[ $key = $ESC[A ]]; then echo up;    fi
                          if [[ $key = $ESC[B ]]; then echo down;  fi
+                         if [[ $key = $ESC[D ]]; then echo left;  fi
                          if [[ $key = ""     ]]; then echo enter; fi; }
 
     # initially print empty new lines (scroll down if at bottom of screen)
@@ -100,6 +93,38 @@ function select_option {
         selected=0
     }
 
+    function delete_item(){
+       local let choice=$1+${indexes[0]}
+       local deleted_opt=${opts[$choice]} 
+       # delete array element
+       opts=( ` eval echo "${opts[@]/$deleted_opt}" ` )
+
+       local lastindex=$(($rendernum - 1))
+       if [ ${indexes[$lastindex]} -eq $(($paranum-1)) ]; then
+           for (( i=0; i<$rendernum; i++ )); do
+               let indexes[$i]=indexes[$i]-1
+          done
+       fi
+
+
+       ((paranum--))
+
+       
+       clear_region
+
+       if [ $paranum -lt $LISTNUM ];then 
+          ((rendernum--));
+         
+          if [ $selected -eq $lastindex ] && [ $selected -gt 0 ];then
+             let selected=selected-1
+          fi
+       fi
+
+       if [ $rendernum -eq 0 ];then 
+          echo "select kill session is done."
+          exit 0; 
+       fi
+    }
 
     # ensure cursor and input echoing back on upon a ctrl+c during read -s
     trap "cursor_blink_on; stty echo; printf '\n'; exit" 2
@@ -107,30 +132,31 @@ function select_option {
 
     while true; do
         # print options by overwriting the last lines
-        # for opt in $opts; do
-         local idx=0;
-         clear_region
-         for (( i=0; i<$rendernum; i++ )); do
-            idx=${indexes[$i]}
-            cursor_to $(($startrow + $i))
-            if [ $i -eq $selected ]; then
-                print_selected "${opts[$idx]}" 
-            else
-                print_option "${opts[$idx]}" 
-            fi
-            # ((idx++))
+        local idx=0;
+        clear_region
+        for (( i=0; i<$rendernum; i++ )); do
+           idx=${indexes[$i]}
+           cursor_to $(($startrow + $i))
+           if [ $i -eq $selected ]; then
+               print_selected "${opts[$idx]}" 
+           else
+               print_option "${opts[$idx]}" 
+           fi
         done
 
         # user key control
         case `key_input` in
-            enter) cursor_to $(($startrow))
-                   break;;
+            enter) break;;
+
             up)    ((selected--));
-                   # if [ $selected -lt 0 ]; then selected=$(($# - 1)); fi;;
+
                    if [ $selected -lt 0 ]; then selected=$(($rendernum - 1)); update_indexes_up; fi;;
+
             down)  ((selected++));
-                   # if [ $selected -ge $# ]; then selected=0; fi;;
+
                    if [ $selected -ge $rendernum ]; then selected=0; update_indexes_down; fi;;
+
+            left)  delete_item $selected;;
         esac
     done
 
@@ -138,24 +164,13 @@ function select_option {
     cursor_to $lastrow
     printf "\n"
     cursor_blink_on
-
-    return $selected
-
 }
 
 echo "Select one option using up/down keys and enter to confirm:"
 echo
 
 
-indexes=( `generate_indexes 1`)
-options=("00" "01" )
+indexes=( `generate_indexes 6`)
+options=("ab" "cd" "ef" "gh" "ij" "kl" "mn")
 
 select_option "${options[@]}"
-choice=$?
-#deleted=${options[$choice]} 
-#options=( "${options[@]/$deleted}" )
-#select_option "${options[@]}"
-
-index=${indexes[$choice]}
-echo "Choosen index = $index"
-echo "        value = ${options[$index]}"
