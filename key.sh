@@ -33,8 +33,13 @@ then
    exit 0
 fi
 
+## clean up
+function clean_up(){
+  rm -rf tempfile$$
+}
+
 ## extract pid column in given line
-function getPID() {
+function get_pid() {
 
    local pid=`echo "$1" |  cut -d" " -f2` 
    echo "${pid}" 
@@ -46,15 +51,13 @@ function generate_indexes(){
    echo "${indexes[@]}"
 }
 
-#mapfile -t process_name < <(cut -d" " --complement -f1-10 tempfile$$)
-#mapfile -t other_info < <(cut -d" " -f1-10 tempfile$$)
 
-
+mapfile -t opts < <(cat tempfile$$)
 let num=${#opts[@]}-1
 indexes=( `generate_indexes $num`)
-mapfile -t opts < <(cat tempfile$$)
+echo "num: $num"
+echo ${opts[@]} ${#opts[@]}
 
-echo ${opts[0]} ${#opts[@]}
 function select_option {
    
     #local opts=(${options[@]}) # convert to array
@@ -78,7 +81,7 @@ function select_option {
 
     # initially print empty new lines (scroll down if at bottom of screen)
     #for opt in $opts; do printf "\n"; done
-    for num in `seq $LISTNUM`; do printf "\n"; done
+    for i in `seq $LISTNUM`; do printf "\n"; done
 
     # determine current screen position for overwriting the options
     local lastrow=`get_cursor_row`
@@ -138,16 +141,19 @@ function select_option {
        local let choice=$1+${indexes[0]}
        local deleted_opt=${opts[$choice]} 
 
-       local pid=$(getPID "$deleted_opt")
+       local pid=$(get_pid "$deleted_opt")
        kill -9 $pid
 
        # delete array element
-       opts=( ` eval echo "${opts[@]/$deleted_opt}" ` )
+       # unset opts[$choice]
+       # opts=( `eval echo "${opts[@]/$deleted_opt}"` )
+       awk -v line=$(($choice + 1)) '{if(NR != line) print $0}' tempfile$$ >tempfile$$.tmp && mv tempfile$$.tmp tempfile$$ 
+       mapfile -t opts < <(cat tempfile$$)
 
        local lastindex=$(($rendernum - 1))
-       if [ ${indexes[$lastindex]} -eq $(($paranum-1)) ]; then
+       if [ ${indexes[$lastindex]} -eq $(($paranum-1)) ] && [ $paranum -gt $LISTNUM ]; then
            for (( i=0; i<$rendernum; i++ )); do
-               let indexes[$i]=indexes[$i]-1
+               let indexes[$i]=indexes[$i]-1;
           done
        fi
 
@@ -166,7 +172,8 @@ function select_option {
 
        if [ $rendernum -eq 0 ];then 
           echo "select kill session is done."
-          exit 0; 
+          clean_up
+          exit 0
        fi
     }
 
@@ -190,7 +197,8 @@ function select_option {
 
         # user key control
         case `key_input` in
-            enter) break;;
+            enter) clean_up;
+                   break;;
 
             up)    ((selected--));
 
@@ -213,5 +221,6 @@ function select_option {
 
 echo "Select one option using up/down keys and enter to confirm:"
 echo
-
 select_option
+
+
