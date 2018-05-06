@@ -13,6 +13,7 @@ if [ -e ~/.skill.conf ]; then
    do_parsing 
 else
    LISTNUM=5
+   MSGNUM=3
 fi
 
 
@@ -74,29 +75,40 @@ function select_option {
                          if [[ $key = $ESC[D ]]; then echo left;  fi
                          if [[ $key = ""     ]]; then echo enter; fi; }
 
-    # initially print empty new lines (scroll down if at bottom of screen)
-    #for opt in $opts; do printf "\n"; done
-    for i in `seq $LISTNUM`; do printf "\n"; done
+    # initially print empty new lines (scroll down if at bottom of screen) 
+    for i in `seq $(($LISTNUM+$MSGNUM))`; do printf "\n"; done
 
     # determine current screen position for overwriting the options
     local lastrow=`get_cursor_row`
     # local startrow=$(($lastrow - $#))
     local startrow=$(($lastrow - $LISTNUM))
+    local msgrow=$(($startrow - $MSGNUM))
 
     local selected=0
     local rendernum=$LISTNUM
     if [ $paranum -lt $LISTNUM ]; then rendernum=$paranum; fi
 
   
-    function clear_region(){
-      for (( i=0; i<$rendernum; i++ )); do
-          cursor_to $(($startrow + $i ))
+    function clear_region() {
+       # $1 represents the start row, $2 represents the end row
+       local rows=$(($2 - $1))
+       for ((i=0; i<$rows; i++)); do
+          cursor_to $(($1 + $i ))
            # clear the line from the current cursor to the end of line
           printf "$ESC[0K";
-      done
+       done
     }
 
+    function print_message() {
+       clear_region $msgrow $(($msgrow + $MSGNUM))
+       cursor_to $msgrow
+       if [[ $# -eq 0 ]]; then return; fi 
 
+       printf "$ESC[1;43m"
+       printf "$@"    # enclosed in quotes
+       printf "$ESC[0m"
+    }
+ 
     function update_indexes_down(){
         local tmp=( "${indexes[@]}" )
         local lastindex=$(($rendernum - 1))
@@ -137,7 +149,31 @@ function select_option {
        local deleted_opt=${opts[$choice]} 
 
        local pid=$(get_pid "$deleted_opt")
-       kill -9 $pid
+       kill -9 $pid 2>stderr.$$ 1>stdout.$$ # try first normal kill
+       local status=$?
+       local msg=$(cat stderr.$$ stdout.$$); rm -f std*.$$
+       
+       if [ $status == 0 ]; then 
+          print_message "process $pid is killed"
+       elif [[ "$msg" =~ "No such process" ]]; then
+          # in some cases, we kill a process, other related processes are
+          # also killed, in later version I will add refresh function to 
+          # better solve this problem
+          print_message "process $pid already killed"
+       else
+          print_message 
+          printf "$ESC[1;43m"
+          sudo kill -9 $pid &>/dev/null # then try to kill with sudo           
+          printf "$ESC[0m"
+          local status=$?
+          local currow=`get_cursor_row`
+          if [ $status != 0 ]; then 
+              print_message "sudo: 3 incorrect password attempts, operation is not permitted"
+              return; 
+          else
+              print_message "process $pid is killed"
+          fi 
+       fi
 
        # delete array element
        processes_info=$(echo "$processes_info" | awk -v line=$((choice + 1)) '{if(NR != line) print $0}')
@@ -150,10 +186,9 @@ function select_option {
           done
        fi
 
-
        ((paranum--))
        
-       clear_region
+       clear_region $startrow $(($startrow + $rendernum))
 
        if [ $paranum -lt $LISTNUM ];then 
           ((rendernum--));
@@ -171,13 +206,13 @@ function select_option {
     }
 
     # ensure cursor and input echoing back on upon a ctrl+c during read -s
-    trap "cursor_blink_on; stty echo; printf '\n';exit" 2
+    trap "cursor_blink_on; stty echo; printf '\n'; rm -f std*.$$; cursor_to $lastrow; printf "$ESC[0m"; exit" 2
     cursor_blink_off
 
     while true; do
         # print options by overwriting the last lines
         local idx=0;
-        clear_region
+        clear_region $startrow $(($startrow + $rendernum))
         for (( i=0; i<$rendernum; i++ )); do
            idx=${indexes[$i]}
            cursor_to $(($startrow + $i))
@@ -207,11 +242,10 @@ function select_option {
     echo 
     echo "Session quits"
     cursor_blink_on
+    cursor_to $lastrow
 }
 
 
 echo "Select one option using up/down keys, left key to confirm and enter to quit:"
 echo
 select_option
-
-
