@@ -161,6 +161,7 @@ function select_option {
        fi
 
        if [ $rendernum -eq 0 ];then 
+          cursor_blink_on
           echo "Selectively progress killing session is done."
           exit 0
        fi
@@ -199,10 +200,9 @@ function select_option {
             left)  delete_item $selected;;
         esac
     done
-
-    # cursor position back to normal
-    cursor_to $lastrow
-    printf "\n"
+    
+    echo 
+    echo "Session quits"
     cursor_blink_on
 }
 
