@@ -161,7 +161,7 @@ function select_option {
        fi
 
        if [ $rendernum -eq 0 ];then 
-          echo "select kill session is done."
+          echo "Selectively progress killing session is done."
           exit 0
        fi
     }
@@ -207,7 +207,7 @@ function select_option {
 }
 
 
-echo "Select one option using up/down keys and enter to confirm:"
+echo "Select one option using up/down keys, left key to confirm and enter to quit:"
 echo
 select_option
 
