@@ -7,8 +7,14 @@
 #                 "opt1" "opt2" ...
 #   Return value: selected index (0 for opt1, 1 for opt2 ...)
 
-# settings 
-LISTNUM=5
+## settings 
+. parser.sh 
+if [ -e ~/.skill.conf ]; then 
+   do_parsing 
+else
+   LISTNUM=5
+fi
+
 
 if [ $# -lt 1 ];
 then
