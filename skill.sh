@@ -38,7 +38,7 @@ fi
 
 
 ## extract pid column in given line
-function get_pid() {
+function get_pid(){
    local pid=`echo "$1" |  cut -d" " -f2` 
    echo "${pid}" 
 }
@@ -56,17 +56,15 @@ indexes=( `generate_indexes $num`)
 
 function select_option {
    
-    #local opts=(${options[@]}) # convert to array
     local paranum=${#opts[@]}
     
     # little helpers for terminal print control and key input
-    # TODO put the following functions into a sole file and include
     ESC=$( printf "\033")
     cursor_blink_on()  { printf "$ESC[?25h"; }
     cursor_blink_off() { printf "$ESC[?25l"; }
     cursor_to()        { printf "$ESC[$1;${2:-1}H"; }
     print_option()     { printf "[$ESC[1;91m $1 $ESC[0m]";} 
-    print_marked()   { printf "[$ESC[9m $1 $ESC[29m]"; }
+    print_marked()     { printf "[$ESC[9m $1 $ESC[29m]"; }
     print_selected()   { printf "[$ESC[7m $1 $ESC[27m]"; }
     get_cursor_row()   { IFS=';' read -sdR -p $'\E[6n' ROW COL; echo ${ROW#*[}; }
     key_input()        { read -s -n3 key 2>/dev/null >&2
@@ -80,7 +78,6 @@ function select_option {
 
     # determine current screen position for overwriting the options
     local lastrow=`get_cursor_row`
-    # local startrow=$(($lastrow - $#))
     local startrow=$(($lastrow - $LISTNUM))
     local msgrow=$(($startrow - $MSGNUM))
 
@@ -89,7 +86,7 @@ function select_option {
     if [ $paranum -lt $LISTNUM ]; then rendernum=$paranum; fi
 
   
-    function clear_region() {
+    function clear_region(){
        # $1 represents the start row, $2 represents the end row
        local rows=$(($2 - $1))
        for ((i=0; i<$rows; i++)); do
@@ -99,14 +96,12 @@ function select_option {
        done
     }
 
-    function print_message() {
+    function print_message(){
        clear_region $msgrow $(($msgrow + $MSGNUM))
        cursor_to $msgrow
        if [[ $# -eq 0 ]]; then return; fi 
 
-       printf "$ESC[1;43m"
-       printf "$@"    # enclosed in quotes
-       printf "$ESC[0m"
+       printf "$ESC[1;43m $@ $ESC[0m"
     }
  
     function update_indexes_down(){
@@ -125,7 +120,7 @@ function select_option {
         selected=$lastindex
     }
 
-     function update_indexes_up(){
+    function update_indexes_up(){
         local tmp=( "${indexes[@]}" )
 
         if [ $paranum -le $LISTNUM ]; then return ;fi
@@ -149,7 +144,8 @@ function select_option {
        local deleted_opt=${opts[$choice]} 
 
        local pid=$(get_pid "$deleted_opt")
-       kill -9 $pid 2>stderr.$$ 1>stdout.$$ # try first normal kill
+       # try first normal kill
+       kill -9 $pid 2>stderr.$$ 1>stdout.$$
        local status=$?
        local msg=$(cat stderr.$$ stdout.$$); rm -f std*.$$
        
@@ -163,7 +159,8 @@ function select_option {
        else
           print_message 
           printf "$ESC[1;43m"
-          sudo kill -9 $pid &>/dev/null # then try to kill with sudo           
+          # then try to kill with sudo           
+          sudo kill -9 $pid &>/dev/null
           printf "$ESC[0m"
           local status=$?
           local currow=`get_cursor_row`
@@ -211,7 +208,6 @@ function select_option {
 
     while true; do
         # print options by overwriting the last lines
-        local idx=0;
         clear_region $startrow $(($startrow + $rendernum))
         for (( i=0; i<$rendernum; i++ )); do
            idx=${indexes[$i]}
@@ -228,21 +224,18 @@ function select_option {
             enter) break;;
 
             up)    ((selected--));
-
                    if [ $selected -lt 0 ]; then selected=$(($rendernum - 1)); update_indexes_up; fi;;
 
             down)  ((selected++));
-
                    if [ $selected -ge $rendernum ]; then selected=0; update_indexes_down; fi;;
 
             left)  delete_item $selected;;
         esac
     done
     
-    echo 
+    cursor_to $lastrow
     echo "Session quits"
     cursor_blink_on
-    cursor_to $lastrow
 }
 
 
