@@ -16,6 +16,7 @@ else
    MSGNUM=3
 fi
 
+column=$(tput cols)
 
 if [ $# -lt 1 ];
 then
@@ -209,15 +210,40 @@ function select_option {
     while true; do
         # print options by overwriting the last lines
         clear_region $startrow $(($startrow + $rendernum))
+
+        local selected_option;
+
         for (( i=0; i<$rendernum; i++ )); do
-           idx=${indexes[$i]}
+           local idx=${indexes[$i]}
+           local option=${opts[$idx]}
+           local len=${#option}
+           local display=$option
+
            cursor_to $(($startrow + $i))
+           
+           # if the option is too long, then use '...' to replace the remain content
+           # the originally detailed option will be print out in the message region 
+           # when the option is being selected
+           if [ $len -gt $((column-15)) ]; then
+              display="${option:0:$((column-15))}..."
+           fi
+
            if [ $i -eq $selected ]; then
-               print_selected "${opts[$idx]}" 
+               print_selected "$display"  
+               selected_option=$option 
            else
-               print_option "${opts[$idx]}" 
+               print_option "$display" 
            fi
         done
+        
+        # must be placed out of the for loop
+        len=${#selected_option};
+        if [ $len -gt $((column-15)) ]; then
+             # if the option is long option, print it out in message region
+             print_message "$selected_option"
+        else 
+             print_message 
+        fi
 
         # user key control
         case `key_input` in
