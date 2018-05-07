@@ -14,6 +14,7 @@ if [ -e ~/.skill.conf ]; then
 else
    LISTNUM=5
    MSGNUM=3
+   SHOW_DURATION=1.5
 fi
 
 column=$(tput cols)
@@ -152,11 +153,13 @@ function select_option {
        
        if [ $status == 0 ]; then 
           print_message "process $pid is killed"
+          sleep $SHOW_DURATION
        elif [[ "$msg" =~ "No such process" ]]; then
           # in some cases, we kill a process, other related processes are
           # also killed, in later version I will add refresh function to 
           # better solve this problem
           print_message "process $pid already killed"
+          sleep $SHOW_DURATION
        else
           print_message 
           printf "$ESC[1;43m"
@@ -167,9 +170,11 @@ function select_option {
           local currow=`get_cursor_row`
           if [ $status != 0 ]; then 
               print_message "sudo: 3 incorrect password attempts, operation is not permitted"
+              sleep $SHOW_DURATION
               return; 
           else
               print_message "process $pid is killed"
+              sleep $SHOW_DURATION
           fi 
        fi
 
