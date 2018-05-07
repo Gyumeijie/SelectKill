@@ -161,8 +161,8 @@ function select_option {
           printf "$ESC[1;43m"
           # then try to kill with sudo           
           sudo kill -9 $pid &>/dev/null
-          printf "$ESC[0m"
           local status=$?
+          printf "$ESC[0m"
           local currow=`get_cursor_row`
           if [ $status != 0 ]; then 
               print_message "sudo: 3 incorrect password attempts, operation is not permitted"
