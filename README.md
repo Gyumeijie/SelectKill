@@ -65,6 +65,16 @@ shown in message region, so we can give them a duration for displaing, say ```1.
   SHOW_DURATION=1.5
 ```
 
+## set the initially selected option
+
+We can also set the initially selected option, the default is not choosing any option in the region, but we
+can set it to, say, the first option or any other option. The following is the corresponding setting:
+```
+  INIT_SELECTED=-1
+```
+and any invalid value which is less than ```-1``` or greater than the number of total options will be forcibly 
+reset to the default ```-1```.
+
 # Todos
 - [ ] Prettify processes information shown in the option region.
 - [ ] Support refreshing for getting realtime processes information but not a staic snapshot.
