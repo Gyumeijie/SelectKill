@@ -15,6 +15,7 @@ else
    LISTNUM=5
    MSGNUM=3
    SHOW_DURATION=1.5
+   INIT_SELECTED=-1
 fi
 
 column=$(tput cols)
@@ -83,7 +84,12 @@ function select_option {
     local startrow=$(($lastrow - $LISTNUM))
     local msgrow=$(($startrow - $MSGNUM))
 
-    local selected=0
+    local selected=$INIT_SELECTED
+    # check the initially selected number
+    if [ $selected -lt -1 ] || [ $selected -gt $paranum ]; then
+       selected=-1;
+    fi
+
     local rendernum=$LISTNUM
     if [ $paranum -lt $LISTNUM ]; then rendernum=$paranum; fi
 
