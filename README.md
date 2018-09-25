@@ -77,5 +77,5 @@ reset to the default ```-1```.
 
 # Todos
 - [ ] Prettify processes information shown in the option region.
-- [ ] Support refreshing for getting realtime processes information but not a staic snapshot.
+- [ ] Support refreshing for getting realtime processes information but not a static snapshot.
 - [ ] Add confirming session for killing a process.
